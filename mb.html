@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MB</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700;800&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --yellow:#FFE14D; --pink:#FF6B9D; --teal:#00C9A7; --dark:#1a1a2e; --white:#fffef7; }
+  body { background:var(--white); font-family:'Bricolage Grotesque',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; }
+  .blob { position:fixed; border-radius:50%; filter:blur(80px); opacity:0.25; pointer-events:none; z-index:0; animation:float 8s ease-in-out infinite; }
+  .blob-1 { width:400px; height:400px; background:var(--yellow); top:-100px; left:-100px; }
+  .blob-2 { width:300px; height:300px; background:var(--pink); top:50%; right:-80px; animation-delay:-3s; }
+  .blob-3 { width:250px; height:250px; background:var(--teal); bottom:-50px; left:30%; animation-delay:-5s; }
+  @keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+
+  nav { position:fixed; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:16px 28px; z-index:100; background:rgba(255,254,247,0.85); backdrop-filter:blur(12px); border-bottom:1px solid rgba(0,0,0,0.06); }
+  .nav-logo { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:var(--dark); letter-spacing:-1px; }
+  .hamburger { width:40px; height:40px; background:var(--dark); border:none; border-radius:10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; transition:background 0.2s; }
+  .hamburger span { display:block; width:18px; height:2px; background:white; border-radius:2px; }
+  .hamburger:hover { background:var(--pink); }
+
+  .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.3s; backdrop-filter:blur(4px); }
+  .drawer-overlay.open { opacity:1; pointer-events:all; }
+  .drawer { position:fixed; top:0; right:0; bottom:0; width:min(380px,100vw); background:var(--dark); z-index:201; transform:translateX(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; padding:32px 28px; overflow-y:auto; }
+  .drawer.open { transform:translateX(0); }
+  .drawer-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  .drawer-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:var(--yellow); }
+  .close-btn { background:rgba(255,255,255,0.1); border:none; border-radius:8px; width:36px; height:36px; color:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+  .close-btn:hover { background:var(--pink); }
+  .drawer-desc { font-size:14px; color:rgba(255,255,255,0.5); line-height:1.6; margin-bottom:24px; }
+  .drawer label { font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.4); display:block; margin-bottom:8px; }
+  .drawer input, .drawer textarea { width:100%; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:14px 16px; color:white; font-family:'Bricolage Grotesque',sans-serif; font-size:15px; outline:none; margin-bottom:16px; transition:border-color 0.2s; resize:none; }
+  .drawer input::placeholder, .drawer textarea::placeholder { color:rgba(255,255,255,0.25); }
+  .drawer input:focus, .drawer textarea:focus { border-color:var(--yellow); }
+  .send-btn { width:100%; padding:16px; background:var(--yellow); border:none; border-radius:12px; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:var(--dark); cursor:pointer; transition:background 0.2s; }
+  .send-btn:hover { background:var(--pink); color:white; }
+  .send-success { text-align:center; padding:20px; color:var(--teal); font-size:15px; font-weight:700; display:none; }
+
+  .page { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 20px 60px; }
+  .hero { text-align:center; margin-bottom:50px; animation:fadeUp 0.8s ease both; }
+  .tag { display:inline-block; background:var(--yellow); color:var(--dark); font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:4px 14px; border-radius:100px; margin-bottom:20px; animation:fadeUp 0.8s ease 0.1s both; }
+  .mb-title { font-family:'Syne',sans-serif; font-size:clamp(90px,18vw,180px); font-weight:800; line-height:0.9; letter-spacing:-6px; color:var(--dark); position:relative; display:inline-block; }
+  .mb-title span.m { -webkit-text-stroke:3px var(--dark); color:transparent; display:inline-block; }
+  .mb-title span.b { color:var(--dark); display:inline-block; }
+  .mb-title::after { content:'✦'; position:absolute; top:10px; right:-44px; font-size:28px; color:var(--pink); animation:spin 4s linear infinite; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .subtitle { font-size:15px; color:#999; letter-spacing:4px; text-transform:uppercase; margin-top:10px; }
+
+  .search-section { width:100%; max-width:520px; animation:fadeUp 0.8s ease 0.2s both; }
+  .search-label { font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#aaa; margin-bottom:12px; display:block; text-align:center; }
+  .search-wrap { position:relative; display:flex; align-items:center; background:var(--dark); border-radius:100px; padding:6px 6px 6px 28px; box-shadow:6px 6px 0px var(--yellow),0 20px 60px rgba(0,0,0,0.1); transition:box-shadow 0.3s; }
+  .search-wrap:focus-within { box-shadow:6px 6px 0px var(--pink),0 20px 60px rgba(0,0,0,0.13); }
+  .search-input { flex:1; background:transparent; border:none; outline:none; font-family:'Bricolage Grotesque',sans-serif; font-size:18px; font-weight:700; color:var(--white); letter-spacing:1px; }
+  .search-input::placeholder { color:rgba(255,255,255,0.3); font-weight:400; }
+  .search-btn { background:var(--yellow); border:none; border-radius:100px; padding:14px 24px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--dark); cursor:pointer; transition:background 0.2s,transform 0.1s; white-space:nowrap; }
+  .search-btn:hover { background:var(--pink); color:white; }
+  .search-btn:active { transform:scale(0.97); }
+
+  .result-area { width:100%; max-width:520px; margin-top:24px; min-height:40px; }
+  .card { background:var(--dark); border-radius:24px; padding:28px 28px 20px; position:relative; overflow:hidden; box-shadow:6px 6px 0px var(--teal); animation:cardPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+  @keyframes cardPop { from{opacity:0;transform:scale(0.85) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  .card::before { content:''; position:absolute; top:-40px; right:-40px; width:150px; height:150px; border-radius:50%; background:var(--yellow); opacity:0.07; }
+  .card-name { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--yellow); margin-bottom:12px; }
+  .card-message { font-size:15px; line-height:1.75; color:rgba(255,255,255,0.9); }
+  .card-footer { margin-top:16px; font-size:11px; color:rgba(255,255,255,0.2); letter-spacing:2px; text-transform:uppercase; margin-bottom:16px; }
+  .card.error { box-shadow:6px 6px 0px var(--pink); }
+  .card.error .card-name { color:var(--pink); }
+
+  .action-btns { display:flex; gap:10px; flex-wrap:wrap; }
+  .action-btn { flex:1; min-width:120px; padding:12px 16px; border:2px solid rgba(255,255,255,0.12); background:transparent; border-radius:12px; font-family:'Bricolage Grotesque',sans-serif; font-size:13px; font-weight:700; color:rgba(255,255,255,0.7); cursor:pointer; text-align:center; transition:all 0.2s; }
+  .action-btn:hover { border-color:var(--yellow); color:var(--yellow); background:rgba(255,225,77,0.06); }
+  .action-btn.reply-btn:hover { border-color:var(--pink); color:var(--pink); background:rgba(255,107,157,0.06); }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:300; opacity:0; pointer-events:none; transition:opacity 0.3s; backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal { background:var(--white); border-radius:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; padding:32px 28px; transform:scale(0.9) translateY(20px); transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1); box-shadow:8px 8px 0px var(--dark); }
+  .modal-overlay.open .modal { transform:scale(1) translateY(0); }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+  .modal-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:var(--dark); }
+  .close-modal-btn { background:var(--dark); border:none; border-radius:8px; width:36px; height:36px; color:white; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+  .close-modal-btn:hover { background:var(--pink); }
+  .game-picker { display:flex; flex-direction:column; gap:14px; }
+  .game-card { display:flex; align-items:center; gap:16px; padding:18px 20px; border-radius:16px; background:var(--dark); cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:4px 4px 0px var(--teal); border:none; text-align:left; width:100%; }
+  .game-card:hover { transform:translate(-2px,-2px); box-shadow:6px 6px 0px var(--teal); }
+  .game-card:nth-child(2) { box-shadow:4px 4px 0px var(--pink); }
+  .game-card:nth-child(2):hover { box-shadow:6px 6px 0px var(--pink); }
+  .game-card:nth-child(3) { box-shadow:4px 4px 0px var(--yellow); }
+  .game-card:nth-child(3):hover { box-shadow:6px 6px 0px var(--yellow); }
+  .game-icon { font-size:32px; }
+  .game-info-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:white; }
+  .game-info-desc { font-size:12px; color:rgba(255,255,255,0.45); margin-top:2px; }
+
+  .game-screen { display:none; flex-direction:column; align-items:center; }
+  .game-screen.active { display:flex; }
+  .game-back-btn { background:none; border:2px solid rgba(0,0,0,0.12); border-radius:100px; padding:8px 18px; font-family:'Bricolage Grotesque',sans-serif; font-size:13px; font-weight:700; color:var(--dark); cursor:pointer; margin-bottom:20px; align-self:flex-start; transition:all 0.2s; }
+  .game-back-btn:hover { background:var(--dark); color:white; border-color:var(--dark); }
+  #snakeCanvas { border-radius:16px; border:3px solid var(--dark); display:block; }
+  .game-score { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--dark); margin-bottom:12px; }
+  .game-controls-hint { font-size:11px; color:#aaa; letter-spacing:1px; margin-top:10px; text-align:center; }
+  .game-start-btn { margin-top:14px; padding:12px 32px; background:var(--dark); border:none; border-radius:100px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:white; cursor:pointer; transition:background 0.2s; }
+  .game-start-btn:hover { background:var(--teal); }
+
+  #grid-2048 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; background:var(--dark); padding:10px; border-radius:14px; width:min(300px,90vw); }
+  .tile { width:100%; aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:clamp(14px,4vw,20px); font-weight:800; color:var(--dark); background:rgba(255,255,255,0.08); }
+  .tile[data-val="2"] { background:#ffe14d; }
+  .tile[data-val="4"] { background:#ffd700; }
+  .tile[data-val="8"] { background:#ff8c42; color:white; }
+  .tile[data-val="16"] { background:#ff6b9d; color:white; }
+  .tile[data-val="32"] { background:#e84393; color:white; }
+  .tile[data-val="64"] { background:#00c9a7; color:white; }
+  .tile[data-val="128"] { background:#00b4d8; color:white; font-size:clamp(12px,3vw,16px); }
+  .tile[data-val="256"] { background:#7b2ff7; color:white; font-size:clamp(12px,3vw,16px); }
+  .tile[data-val="512"] { background:#5a189a; color:white; font-size:clamp(10px,2.5vw,14px); }
+  .tile[data-val="1024"] { background:#240046; color:white; font-size:clamp(9px,2vw,12px); }
+  .tile[data-val="2048"] { background:linear-gradient(135deg,var(--yellow),var(--pink)); font-size:clamp(9px,2vw,12px); }
+
+  .plinko-screen { text-align:center; padding:10px 0; }
+  .plinko-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:var(--dark); margin-bottom:6px; }
+  .plinko-sub { font-size:12px; color:#aaa; margin-bottom:16px; }
+  .plinko-area { width:min(300px,90vw); height:200px; background:var(--dark); border-radius:16px; position:relative; overflow:hidden; margin:0 auto 14px; }
+  .falling-emoji { position:absolute; font-size:24px; animation:fall linear forwards; top:-40px; }
+  @keyframes fall { to { top:220px; transform:rotate(360deg); } }
+  .plinko-btn { padding:12px 32px; background:var(--yellow); border:none; border-radius:100px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--dark); cursor:pointer; transition:background 0.2s; }
+  .plinko-btn:hover { background:var(--pink); color:white; }
+  .plinko-result { font-size:20px; font-weight:800; margin-top:12px; color:var(--dark); font-family:'Syne',sans-serif; min-height:30px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+  .dots { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:1; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--dark); opacity:0.12; }
+  .dot:nth-child(2) { background:var(--pink); opacity:0.45; }
+  .dot:nth-child(3) { background:var(--yellow); opacity:0.45; }
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<nav>
+  <div class="nav-logo">MB ✦</div>
+  <button class="hamburger" onclick="openDrawer()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">📬 Send MB a message</div>
+    <button class="close-btn" onclick="closeDrawer()">✕</button>
+  </div>
+  <p class="drawer-desc">Got something to say back? Leave MB a message — name, thoughts, anything. He might just read it 👀</p>
+  <div id="drawerForm">
+    <label>Your name</label>
+    <input type="text" id="senderName" placeholder="what do they call you..." />
+    <label>Your message</label>
+    <textarea id="senderMsg" rows="5" placeholder="say your thing..."></textarea>
+    <button class="send-btn" onclick="sendMessage()">Send it 🔥</button>
+  </div>
+  <div class="send-success" id="sendSuccess">
+    ✅ Message sent! MB will see this soon 👀<br><br>
+    <span style="font-size:13px;color:rgba(255,255,255,0.4);font-weight:400;">Thanks for reaching out 💛</span>
+  </div>
+</div>
+
+<div class="page">
+  <div class="hero">
+    <div class="tag">personal space ✦</div>
+    <div class="mb-title"><span class="m">M</span><span class="b">B</span></div>
+    <p class="subtitle">what i think about you</p>
+  </div>
+  <div class="search-section">
+    <span class="search-label">type your name</span>
+    <div class="search-wrap">
+      <input class="search-input" type="text" id="nameInput" placeholder="your name..." autocomplete="off" />
+      <button class="search-btn" onclick="lookup()">Find out →</button>
+    </div>
+  </div>
+  <div class="result-area" id="resultArea"></div>
+</div>
+
+<div class="modal-overlay" id="gameModal">
+  <div class="modal">
+    <div id="gamePicker">
+      <div class="modal-header">
+        <div class="modal-title">🎮 Pick a game</div>
+        <button class="close-modal-btn" onclick="closeGameModal()">✕</button>
+      </div>
+      <div class="game-picker">
+        <button class="game-card" onclick="startGame('snake')">
+          <span class="game-icon">🐍</span>
+          <div><div class="game-info-title">Snake</div><div class="game-info-desc">Classic. Eat, grow, don't die.</div></div>
+        </button>
+        <button class="game-card" onclick="startGame('2048')">
+          <span class="game-icon">🔢</span>
+          <div><div class="game-info-title">2048</div><div class="game-info-desc">Slide tiles. Hit 2048. Good luck.</div></div>
+        </button>
+        <button class="game-card" onclick="startGame('vibes')">
+          <span class="game-icon">🎲</span>
+          <div><div class="game-info-title">Vibe Check</div><div class="game-info-desc">Spin for your vibe of the day.</div></div>
+        </button>
+      </div>
+    </div>
+    <div class="game-screen" id="snakeScreen">
+      <button class="game-back-btn" onclick="showGamePicker()">← back</button>
+      <div class="game-score" id="snakeScore">SCORE: 0</div>
+      <canvas id="snakeCanvas" width="280" height="280"></canvas>
+      <p class="game-controls-hint">Arrow keys / WASD · Mobile: swipe</p>
+      <button class="game-start-btn" id="snakeStartBtn" onclick="startSnake()">Start Game</button>
+    </div>
+    <div class="game-screen" id="screen2048">
+      <button class="game-back-btn" onclick="showGamePicker()">← back</button>
+      <div class="game-score" id="score2048">SCORE: 0</div>
+      <div id="grid-2048"></div>
+      <p class="game-controls-hint">Arrow keys to slide · Mobile: swipe</p>
+      <button class="game-start-btn" onclick="init2048()">New Game</button>
+    </div>
+    <div class="game-screen plinko-screen" id="vibesScreen">
+      <button class="game-back-btn" onclick="showGamePicker()">← back</button>
+      <div class="plinko-title">✨ Daily Vibe Check</div>
+      <div class="plinko-sub">Tap to reveal your energy for today</div>
+      <div class="plinko-area" id="plinkoArea"></div>
+      <button class="plinko-btn" onclick="doVibeCheck()">Check my vibe 🎲</button>
+      <div class="plinko-result" id="plinkoResult"></div>
+    </div>
+  </div>
+</div>
+
+<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+
+<script>
+const messages = {
+  "Ayanwale":    {display:"Ayanwale",    message:"The girl I love with everything. So calm, reserved and intelligent. It is just crazy that all my dreams might not come true. I hope you have a good life 🤍"},
+  "idayat":   {display:"Idayat",   message:"My very best friend. I fw your vibe from day 1. When Hamzat told me you were all about true love back then, I thought I could learn one or two from you about it. I did — but not what I expected to learn ofc 😅. Till tomorrow I will still think of us having that argument about the shape of the earth 😂. I value our friendship so much. Engineer in the making 💪"},
+  "techgee":  {display:"Techgee",  message:"My brother. I fw you man. You need to stop beating your meat and start working on yourself more — I see a big potential in you I swear. We are destined for greatness whether you believe it or not. But first things first, conquer your lust before you conquer the world. Love don't need money walai 🙏"},
+  "lasb":     {display:"LasB",     message:"My dear friend Bolaji. You have the brain for social media handling — you should get better at it and monetize it heavily. The world we run now is an attention economy. Big companies will do anything for views and likes. A word is enough for the wise. Also, use protection and stop wasting your time with multiple ladies 😅"},
+  "ahmed":    {display:"Ahmed",    message:"My brother! You need to keep going bro, you motivate me a lot. I can't thank you enough for putting me on to crypto and forex. I will still come and learn solar installation from you kek 😄. I love what you do on your status — that shit is fire. Always expanding: graphic design, FX, solar installations... man, YOU are the man 🔥"},
+  "ewatomi":  {display:"Ewatomi",  message:"Hmm, my dear Jumoke. I'm happy that you're free from ulcer. We haven't met in real life yet but it feels like I have. All the times spent together made a part of me today that I don't speak about. I respect the boundary you've created — it's kinda cool that you're stronger now 💙"},
+  "rahman":   {display:"Rahman",   message:"My brother, I love you bro and I mean it. It's just sad that I can't do a lot of things for you that I wish I could. I like that you're exploring the world — but be careful of people who want to bring you down, and be extremely careful of these new gen ladies. Always document your interactions with them 😂 I hope you don't fall into any of their stupid traps hehehe."},
+  "jimmy":     {display:"Jimmy",     message:"My brother! You are crazy and I love your craziness — it makes me want to do crazy things too hahaha 😂. I hope everything works out in our favor bro. OBO KETU!!!!!"},
+  "mariam":   {display:"Mariam",   message:"Ah, what can I say about the lovely Adeoye. You were a part of my journey and I fw you fam. I wish you all the success 🌟"},
+  "rofiat":   {display:"Rofiat",   message:"Hmmmn! I'm about to be dramatic here — I love the times we spent together talking. As much as I don't like to admit it, you are one of the best people in my life. When I got to know you I was discovering myself. When you shared your story with me I felt something in me move — it shaped a part of me and the way I view the world. Thank you for being you. ILY fam 🤍"},
+  "shola":    {display:"Shola",    message:"Black Sholly 😄 We used to talk a lot. I admire your will to make money in a clean way. One of the females I know that dabbles in different businesses. I wish you all the success 💪"},
+  "bml":      {display:"BML",      message:"My brother from another mother. Always there to help me out whenever I get into deep shit. I remember when I started forex in 2023 — you were the first to invest in me and the journey. Even though I lost, I still learnt so much because of your investment. You always inspire me to work hard. Seeing where you're coming from and where you are now is a fucking inspiration. Thank you 🙏🔥"},
+  "lola":     {display:"Lola",     message:"My personal edidi 😄 My good friend. Very secretive lol. I hope you succeed in life fr. You've been a good gist partner and I enjoy the times we've spent together 💛"},
+  "brainbox": {display:"Brainbox", message:"My brother!! Always pushing to be better. I admire your work rate and intelligence. You've been so helpful to me man, I appreciate it brother 🤝"},
+  "jeet":     {display:"Jeet",     message:"This nigga! 😂 The one that made me push hard for Monad lmao. I admire the way you argue and speak on things. I always look forward to your opinion even when I don't agree with it — for some reason I just like talking to you man. Thank you for being part of the journey 🤝"},
+  "temitope": {display:"Temitope", message:"My dear Temitope, I really appreciate you being a part of my journey. You made me explore a lot of things I didn't know I could at the time. I love you, thank you for being you 🤍"},
+  "aliamin":  {display:"Aliamin",  message:"My brother! I love you bro. I hope you heal from whatever is hurting you from the inside. You should also try to stop smoking you dimwit 😂 — I will beat your ass if you die smoking. You inspire me to want to approach girls lmao 😭"},
+  "osg":      {display:"OSG",      message:"My gift from the creator! My brother, my real G. You know everything about me from top to bottom. I love you bro. I wish I had enough money to just sponsor your BB — we WILL be successful. You will be a basketball player, I will be there to witness you become great, and you will witness me become great too. Our bond is forever bro. You are the brother my mother couldn't birth — even though you're my cousin, our bond is that of brothers. I love you 🏀🔥"},
+  "tosin":    {display:"Tosin",    message:"My brother! I hope you already stopped beating cause I have 😅. We have great things ahead to achieve. We will become great people on this earth — we have the grit. Nothing can stop us. Love you man 💪🔥"},
+  "blexzy":   {display:"Blexzy",   message:"My guy! I hope you heal brother. Everything will be ok very soon, don't fret. We will smile very soon 🤍✨"},
+  "mb":       {display:"MB — You", message:"To myself 💪 You survived last year. You can survive ANYTHING G. The ups and downs of last year were crazy but it is all part of the journey to greatness. You are the best of the best. We are 1 ................................ 🔥🔥🔥"}
+};
+
+function lookup() {
+  const input = document.getElementById('nameInput').value.trim().toLowerCase();
+  const area = document.getElementById('resultArea');
+  if (!input) return;
+  const found = messages[input];
+  if (found) {
+    area.innerHTML = `<div class="card"><div class="card-name">✦ ${found.display}</div><div class="card-message">${found.message}</div><div class="card-footer">— from MB, with love</div><div class="action-btns"><button class="action-btn" onclick="openGameModal()">🎮 Play a game</button><button class="action-btn reply-btn" onclick="openDrawerReply('${found.display}')">💬 Reply to MB</button></div></div>`;
+  } else {
+    area.innerHTML = `<div class="card error"><div class="card-name">✦ Who are you??</div><div class="card-message">Bro I don't know you like that 😭 Try a different name or maybe you're just not on the list...</div><div class="card-footer">— MB</div><div class="action-btns"><button class="action-btn" onclick="openGameModal()">🎮 Play a game anyway</button></div></div>`;
+  }
+}
+document.getElementById('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') lookup(); });
+
+function openDrawer() { document.getElementById('drawerOverlay').classList.add('open'); document.getElementById('drawer').classList.add('open'); }
+function openDrawerReply(name) { document.getElementById('senderName').value = name; openDrawer(); }
+function closeDrawer() { document.getElementById('drawerOverlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
+function sendMessage() {
+  const name = document.getElementById('senderName').value.trim();
+  const msg = document.getElementById('senderMsg').value.trim();
+  if (!name || !msg) return;
+  const text = encodeURIComponent(`Name: ${name}\n\n${msg}`);
+  window.open(`https://wa.me/2347070373338?text=${text}`, '_blank');
+  document.getElementById('senderName').value = '';
+  document.getElementById('senderMsg').value = '';
+  closeDrawer();
+}
+
+function openGameModal() { showGamePicker(); document.getElementById('gameModal').classList.add('open'); stopSnake(); }
+function closeGameModal() { document.getElementById('gameModal').classList.remove('open'); stopSnake(); }
+function showGamePicker() {
+  stopSnake();
+  document.getElementById('gamePicker').style.display = 'block';
+  document.getElementById('snakeScreen').classList.remove('active');
+  document.getElementById('screen2048').classList.remove('active');
+  document.getElementById('vibesScreen').classList.remove('active');
+}
+function startGame(g) {
+  document.getElementById('gamePicker').style.display = 'none';
+  if (g==='snake') { document.getElementById('snakeScreen').classList.add('active'); initSnakeCanvas(); }
+  else if (g==='2048') { document.getElementById('screen2048').classList.add('active'); init2048(); }
+  else { document.getElementById('vibesScreen').classList.add('active'); document.getElementById('plinkoResult').textContent=''; document.getElementById('plinkoArea').innerHTML=''; }
+}
+document.getElementById('gameModal').addEventListener('click', function(e) { if(e.target===this) closeGameModal(); });
+
+// SNAKE
+let snakeInterval=null, snake=[], dir={x:1,y:0}, food={}, snakeScoreVal=0, snakeRunning=false;
+const CELL=20, COLS=14, ROWS=14;
+function initSnakeCanvas() { const c=document.getElementById('snakeCanvas'); c.width=COLS*CELL; c.height=ROWS*CELL; const ctx=c.getContext('2d'); ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.fillText('Press Start 🐍', c.width/2, c.height/2); }
+function startSnake() {
+  snake=[{x:6,y:6},{x:5,y:6},{x:4,y:6}]; dir={x:1,y:0}; snakeScoreVal=0;
+  document.getElementById('snakeScore').textContent='SCORE: 0';
+  document.getElementById('snakeStartBtn').textContent='Restart';
+  placeFood(); snakeRunning=true; clearInterval(snakeInterval);
+  snakeInterval=setInterval(snakeTick, 140);
+}
+function stopSnake() { clearInterval(snakeInterval); snakeRunning=false; }
+function placeFood() { do { food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)}; } while(snake.some(s=>s.x===food.x&&s.y===food.y)); }
+function snakeTick() {
+  const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||snake.some(s=>s.x===head.x&&s.y===head.y)) {
+    stopSnake();
+    const c=document.getElementById('snakeCanvas'), ctx=c.getContext('2d');
+    ctx.fillStyle='rgba(255,107,157,0.9)'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='white'; ctx.font='bold 18px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Game Over 😭', c.width/2, c.height/2-10);
+    ctx.font='14px sans-serif'; ctx.fillText('Score: '+snakeScoreVal, c.width/2, c.height/2+18);
+    return;
+  }
+  snake.unshift(head);
+  if(head.x===food.x&&head.y===food.y){snakeScoreVal+=10;document.getElementById('snakeScore').textContent='SCORE: '+snakeScoreVal;placeFood();}
+  else snake.pop();
+  const c=document.getElementById('snakeCanvas'), ctx=c.getContext('2d');
+  ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle='#FF6B9D'; ctx.beginPath(); ctx.arc(food.x*CELL+CELL/2,food.y*CELL+CELL/2,CELL/2-2,0,Math.PI*2); ctx.fill();
+  snake.forEach((s,i)=>{ ctx.fillStyle=i===0?'#FFE14D':'#00C9A7'; ctx.beginPath(); ctx.roundRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2,4); ctx.fill(); });
+}
+document.addEventListener('keydown',e=>{
+  if(!snakeRunning)return;
+  const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0},W:{x:0,y:-1},S:{x:0,y:1},A:{x:-1,y:0},D:{x:1,y:0}};
+  const nd=map[e.key]; if(nd&&!(nd.x===-dir.x&&nd.y===-dir.y)){dir=nd;e.preventDefault();}
+});
+let tss=null;
+document.getElementById('snakeCanvas').addEventListener('touchstart',e=>{tss=e.touches[0];},{passive:true});
+document.getElementById('snakeCanvas').addEventListener('touchend',e=>{
+  if(!tss||!snakeRunning)return;
+  const dx=e.changedTouches[0].clientX-tss.clientX,dy=e.changedTouches[0].clientY-tss.clientY;
+  if(Math.abs(dx)>Math.abs(dy)){const nd=dx>0?{x:1,y:0}:{x:-1,y:0};if(!(nd.x===-dir.x))dir=nd;}
+  else{const nd=dy>0?{x:0,y:1}:{x:0,y:-1};if(!(nd.y===-dir.y))dir=nd;}
+  tss=null;
+},{passive:true});
+
+// 2048
+let board=[],score2=0;
+function init2048(){board=Array.from({length:4},()=>Array(4).fill(0));score2=0;addT();addT();render2();}
+function addT(){const e=[];board.forEach((r,ri)=>r.forEach((v,ci)=>{if(!v)e.push([ri,ci]);}));if(!e.length)return;const[r,c]=e[Math.floor(Math.random()*e.length)];board[r][c]=Math.random()<0.9?2:4;}
+function render2(){document.getElementById('score2048').textContent='SCORE: '+score2;document.getElementById('grid-2048').innerHTML=board.flat().map(v=>`<div class="tile"${v?` data-val="${v}"`:''}>${v||''}</div>`).join('');}
+function slide(row){let r=row.filter(v=>v),g=0;for(let i=0;i<r.length-1;i++){if(r[i]===r[i+1]){r[i]*=2;g+=r[i];r.splice(i+1,1);}}score2+=g;while(r.length<4)r.push(0);return r;}
+function move2(d){const p=JSON.stringify(board);if(d==='left')board=board.map(r=>slide(r));else if(d==='right')board=board.map(r=>slide(r.reverse()).reverse());else if(d==='up'){board=board[0].map((_,c)=>board.map(r=>r[c])).map(r=>slide(r));board=board[0].map((_,c)=>board.map(r=>r[c]));}else if(d==='down'){board=board[0].map((_,c)=>board.map(r=>r[c])).map(r=>slide(r.reverse()).reverse());board=board[0].map((_,c)=>board.map(r=>r[c]));}if(JSON.stringify(board)!==p){addT();render2();}}
+document.addEventListener('keydown',e=>{if(!document.getElementById('screen2048').classList.contains('active'))return;const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};if(m[e.key]){move2(m[e.key]);e.preventDefault();}});
+let ts2=null;
+document.getElementById('grid-2048').addEventListener('touchstart',e=>{ts2=e.touches[0];},{passive:true});
+document.getElementById('grid-2048').addEventListener('touchend',e=>{if(!ts2)return;const dx=e.changedTouches[0].clientX-ts2.clientX,dy=e.changedTouches[0].clientY-ts2.clientY;if(Math.abs(dx)>Math.abs(dy))move2(dx>0?'right':'left');else move2(dy>0?'down':'up');ts2=null;},{passive:true});
+
+// VIBE CHECK
+const vibes=["Main character energy ⭐","Soft life activated 🛋️","Chaos mode unlocked 🔥","Healing arc loading... 💙","Big bag incoming 💰","Rest day, no debate 😴","Glow up in progress ✨","Chosen one behavior 🤴","Log off, touch grass 🌿","Built different 💪","Manifestation accepted 🙏","Villain arc? Maybe 😈","Romance unlocked 💕","Grind season, no days off 🚀","Divine timing, trust it ⏳","Unbothered. Moisturized. Thriving. 💅"];
+const emojis=['🌟','💫','✨','🔥','💛','💚','💙','💜','🎉','🎲','🎯','🚀','🌈','⚡','🎊','🤩'];
+function doVibeCheck(){const area=document.getElementById('plinkoArea');area.innerHTML='';document.getElementById('plinkoResult').textContent='';for(let i=0;i<18;i++){const el=document.createElement('div');el.className='falling-emoji';el.textContent=emojis[Math.floor(Math.random()*emojis.length)];el.style.left=Math.random()*90+'%';el.style.animationDuration=(0.8+Math.random()*1.2)+'s';el.style.animationDelay=Math.random()*0.5+'s';area.appendChild(el);}setTimeout(()=>{document.getElementById('plinkoResult').textContent=vibes[Math.floor(Math.random()*vibes.length)];},1100);}
+</script>
+</body>
+</html>
